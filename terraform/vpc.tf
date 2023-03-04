@@ -71,19 +71,28 @@ resource "aws_security_group_rule" "allow_tls" {
   security_group_id = aws_security_group.allow_http_tls.id
 }
 
+resource "aws_security_group_rule" "allow_ssh" {
+   type             = "ingress"
+   to_port          = 22
+   from_port        = 22
+   protocol         = "tcp"
+   cidr_blocks      = ["174.52.122.195/32"]
+   security_group_id = aws_security_group.allow_http_tls.id
+}
+
 #IGW Creation
-resource "aws_internet_gateway" "gw" {
+resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 }
 
 #RTB Creation
 resource "aws_route_table" "main" {
-  vpc_id = aws_vpc.example.id
+  vpc_id = aws_vpc.main.id
 }
 
 resource "aws_route" "internet" {
   route_table_id              = aws_route_table.main.id
   destination_cidr_block      = "0.0.0.0/0"
-  gateway_id                  = aws_internet_gateway.main.id
-  depends_on                  = [aws_route_table.main, aws_internet_gateway.gw]
+  gateway_id                  = aws_internet_gateway.igw.id
+  depends_on                  = [aws_route_table.main, aws_internet_gateway.igw]
 }
