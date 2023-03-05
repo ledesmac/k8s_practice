@@ -1,5 +1,5 @@
 data "aws_iam_policy_document" "assume_role" {
-  satement {
+  statement {
     effect = "Allow"
 
     principals {
