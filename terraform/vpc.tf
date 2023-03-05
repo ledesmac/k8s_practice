@@ -36,13 +36,11 @@ resource "aws_network_acl" "main" {
   }
 }
 
-
 resource "aws_security_group" "allow_http_tls" {
   name        = "allow_http_tls"
   description = "Allow TLS and HTTP inbound traffic"
   vpc_id      = aws_vpc.main.id
 }
-
 
 resource "aws_security_group_rule" "allow_all" {
   type              = "egress"
