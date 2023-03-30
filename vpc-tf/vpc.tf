@@ -1,98 +1,39 @@
-#VPC and Subnet Creation
-resource "aws_vpc" "main" {
-  cidr_block       = "10.0.0.0/16"
-  instance_tenancy = "default"
+locals {
+  cluster_name = "eks-playground"
 }
 
-resource "aws_subnet" "east1a" {
-  vpc_id     = aws_vpc.main.id
-  availability_zone  = "us-east-1a"
-  cidr_block = "10.0.1.0/24"
-}
+data "aws_availability_zones" "available" {}
 
-resource "aws_subnet" "east1b" {
-  vpc_id             = aws_vpc.main.id
-  availability_zone  = "us-east-1b"
-  cidr_block         = "10.0.2.0/24"
-}
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "3.19.0"
 
-#NACL and SG Creation
-resource "aws_network_acl" "main" {
-  vpc_id = aws_vpc.main.id
+  name = "education-vpc"
 
-  ingress {
-    protocol   = "-1"
-    rule_no    = 100
-    action     = "allow"
-    cidr_block = "0.0.0.0/0"
-    from_port  = 0
-    to_port    = 0
+  cidr = "10.0.0.0/16"
+  azs  = slice(data.aws_availability_zones.available.names, 0, 3)
+
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  public_subnets  = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
+
+  enable_nat_gateway   = true
+  single_nat_gateway   = true
+  enable_dns_hostnames = true
+
+  public_subnet_tags = {
+    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
+    "kubernetes.io/role/elb"                      = 1
   }
-  egress {
-    protocol   = "-1"
-    rule_no    = 100
-    action     = "allow"
-    cidr_block = "0.0.0.0/0"
-    from_port  = 0
-    to_port    = 0 
+
+  private_subnet_tags = {
+    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
+    "kubernetes.io/role/internal-elb"             = 1
   }
 }
 
-resource "aws_security_group" "allow_http_tls" {
-  name        = "allow_http_tls"
-  description = "Allow TLS and HTTP inbound traffic"
-  vpc_id      = aws_vpc.main.id
-}
 
-resource "aws_security_group_rule" "allow_all" {
-  type              = "egress"
-  to_port           = 0
-  from_port         = 0
-  protocol          = "-1"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.allow_http_tls.id
-}
-
-resource "aws_security_group_rule" "allow_http" {
-  type              = "ingress"
-  to_port           = 80
-  from_port         = 80
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.allow_http_tls.id
-}
-
-resource "aws_security_group_rule" "allow_tls" {
-  type              = "ingress"
-  to_port           = 443
-  from_port         = 443
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.allow_http_tls.id
-}
-
-resource "aws_security_group_rule" "allow_ssh" {
-   type             = "ingress"
-   to_port          = 22
-   from_port        = 22
-   protocol         = "tcp"
-   cidr_blocks      = ["174.52.122.195/32"]
-   security_group_id = aws_security_group.allow_http_tls.id
-}
-
-#IGW Creation
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-}
-
-#RTB Creation
-resource "aws_route_table" "main" {
-  vpc_id = aws_vpc.main.id
-}
-
-resource "aws_route" "internet" {
-  route_table_id              = aws_route_table.main.id
-  destination_cidr_block      = "0.0.0.0/0"
-  gateway_id                  = aws_internet_gateway.igw.id
-  depends_on                  = [aws_route_table.main, aws_internet_gateway.igw]
+resource "aws_ssm_parameter" "vpc_id" {
+  name  = "vpc_id"
+  type  = "String"
+  value = module.vpc.vpc_id
 }
