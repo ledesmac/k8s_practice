@@ -13,6 +13,9 @@ data "aws_subnets" "subnet_ids" {
     name   = "vpc-id"
     values = [data.aws_ssm_parameter.vpc_id.value]
   }
+  tags = {
+    tier = "private"
+  }
 }
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
