@@ -58,8 +58,8 @@ module eks_mng {
   max_size     = 10
   desired_size = 1
 
-  instance_types = ["t3.large"]
-  capacity_type  = "SPOT"
+  instance_types = ["t3.medium"]
+  capacity_type  = "ON_DEMAND"
 
   /*labels = {
     Environment = "test"
@@ -73,7 +73,7 @@ module eks_mng {
   }
 }
 # https://aws.amazon.com/blogs/containers/amazon-ebs-csi-driver-is-now-generally-available-in-amazon-eks-add-ons/ 
-data "aws_iam_policy" "ebs_csi_policy" {
+/*data "aws_iam_policy" "ebs_csi_policy" {
   arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
 
@@ -97,4 +97,4 @@ resource "aws_eks_addon" "ebs-csi" {
     "eks_addon" = "ebs-csi"
     "terraform" = "true"
   }
-}
+}*/
